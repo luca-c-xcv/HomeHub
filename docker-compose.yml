@@ -1,0 +1,102 @@
+version: '3.4'
+
+services:
+
+  host:
+    build: ./HostHub
+    image: luca/hosthub:latest
+    restart: always
+    depends_on:
+      - sql
+    links:
+      - sql
+      - nginx
+    volumes:
+      - containers/host:/var/www
+    hostname: hosthub
+    networks: 
+      frontend:
+        ipv4_address: 
+    ports: 
+      - ":80"
+
+  box:
+    image: luca/boxhub:latest
+    build: ./BoxHub
+    restart: always
+    depends_on: 
+      - sql
+    links:
+      - sql
+      - nginx
+    volumes:
+      - containers/box:/var/www/html
+    hostname: boxhub
+    networks: 
+      frontend:
+        ipv4_address: 
+    ports: 
+      - ":80"
+    security_opt:
+      - apparmor=dockbox
+
+  sql:
+    build: ./SQLHub
+    image: luca/sqlhub:latest
+    restart: always
+    volumes: 
+      - containers/sql:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${ROOT_PSWD}
+    hostname: sqlhub  
+    networks: 
+      frontend: 
+
+  nginx:
+    image: luca/nginx:latest
+    build: ./nginx  
+    restart: always
+    network_mode: host
+    security_opt:
+     - apparmor=docknginx
+
+
+  ftp:
+    image: luca/ftphub:latest
+    build: ./FTPHub
+    restart: always
+    volumes:
+      - containers/ftp/guest:/home/guest
+    hostname: ftphub
+    network_mode: host
+    security_opt:
+     - apparmor=dockftp
+
+  media:
+    image: lscr.io/linuxserver/jellyfin
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Rome
+    volumes:
+      - containers/media:/config
+      - tvshows:/data/tvshows
+      - movies:/data/movies
+      - boxsets:/data/boxsets
+      - documentary:/data/documentary
+      - /opt/vc/lib:/opt/vc/lib
+    devices:
+      - /dev/vcs:/dev/vcs
+      - /dev/vcsa:/dev/vcsa
+      - /dev/vcsu:/dev/vcsu
+      - /dev/vchiq:/dev/vchiq
+    restart: always
+    network_mode: host
+    
+  
+networks: 
+  frontend:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 
