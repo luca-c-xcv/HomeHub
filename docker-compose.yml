@@ -1,0 +1,55 @@
+services:
+  reverse-proxy:
+    image: traefik:v3.7
+    container_name: traefik
+    restart: always
+    command:
+      # Docker provider
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      # HTTP entrypoint
+      - "--entrypoints.web.address=:80"
+      # HTTPS entrypoint
+      - "--entrypoints.websecure.address=:443"
+      # Logging
+      - "--log.level=INFO"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Docker API - read only
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - proxy
+  ftp:
+    build:
+      context: .
+      dockerfile: Dockerfile.ftp
+    container-name: ftp-service
+    restart: always
+    ports:
+      - "21:21/tcp"
+      - "30000-30009:30000-30009/tcp"
+    environment:
+      - PUBLICHOST:xxx.yyy.zzz.ttt # host ip address
+    volumes:
+      - /mnt/ftp:/ftp
+      - /etc/homeserver/ftp:/etc/pure-ftpd
+  cloud:
+    image: ghcr.io/nextcloud-releases/all-in-one:latest
+    init: true
+    restart: always
+    container_name: nextcloud-aio-mastercontainer
+    ports:
+      - "80:80"
+      - "8080:8080"
+      - "8443:8443"
+    volumes:
+      - nextcloud_aio_matercontainer:/mnt/boxhub/local
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+volumes:
+  nextcloud_aio_matercontainer:
+    name: nextcloud_aio_matercontainer
+networks:
+  proxy:
+    name: homecloud-proxy

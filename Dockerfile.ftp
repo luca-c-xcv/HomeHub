@@ -1,0 +1,20 @@
+FROM alpine:latest
+
+RUN apk update && apk add --no-cache pure-ftpd bash &> /dev/null
+
+# create group GID 1100:ftpgroup and user UID 1100:ftpuser
+RUN addgroup -g 1100 ftpgroup && adduser -u 1100 -D -G ftpgroup -H -s /bin/false ftpuser
+
+# create directory where save the ftp files and change the owners
+RUN mkdir -p /ftp && chown -R ftpuser:ftpgroup /ftp
+
+EXPOSE 21 30000-30009
+
+# Start Pure-FTPd with 
+# a maximum of 30 total clients
+# 10 connections per IP.
+# -l puredb:... uses the virtual user database for authentication.
+# -E disables anonymous logins
+# -j enables automatic home directory creation
+# -p 30000:30009 restricts the passive port range
+CMD ["pure-ftpd", "-c", "30", "-C", "10", "-l", "puredb:/etc/pure-ftpd/pureftpd.pdb", "-E", "-j", "-p", "30000:30009"]
